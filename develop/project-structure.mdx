@@ -1,0 +1,188 @@
+---
+title: "MaaNTE Project Structure and Directory Layout"
+description: "A walkthrough of the MaaNTE repository structure, covering which files are in the repo, which are downloaded separately, and what each component does."
+---
+
+Understanding which files live where — and which are generated or downloaded at setup time — is the first step to contributing to MaaNTE. The repository is organized into three broad concerns: the Python agent that implements custom automation logic, the MaaFramework resource pack that drives image recognition and task execution, and the configuration and tooling files that tie everything together.
+
+## Directory tree
+
+```
+MaaNTE/
+├── agent/
+│   ├── main.py                     # Entry point; venv setup, dependency install, agent startup
+│   ├── custom/
+│   │   └── action/
+│   │       ├── __init__.py         # Exports all custom action classes
+│   │       ├── auto_fish.py        # Registered as "auto_fish"
+│   │       ├── auto_make_coffee.py # Registered as "auto_make_coffee"
+│   │       ├── auto_sell_fish.py   # Registered as "auto_sell_fish"
+│   │       ├── auto_buy_fish_bait.py # Registered as "auto_buy_fish_bait"
+│   │       └── utils.py            # Shared helpers: get_image, match_template_in_region, click_rect
+│   └── utils/
+│       ├── logger.py               # loguru-based logger
+│       ├── pienv.py                # PI environment helpers
+│       ├── time.py                 # Time utilities
+│       └── win32_process.py        # Win32 window helpers
+├── assets/
+│   ├── interface.json              # MFAAvalonia task/option configuration
+│   ├── logo.png
+│   ├── MaaCommonAssets/            # Git submodule
+│   └── resource/
+│       └── base/
+│           ├── image/              # OpenCV template images for recognition
+│           ├── model/              # OCR models (downloaded separately, not in repo)
+│           └── pipeline/           # Task pipeline JSON files
+│               ├── Fish/
+│               ├── Button/
+│               ├── Common/
+│               ├── auto_make_coffee.json
+│               ├── auto_withdraw_money.json
+│               ├── realtime_assist.json
+│               └── MouseMoveReset.json
+├── deps/                           # MaaFramework binaries (downloaded separately)
+├── docs/                           # Source documentation files
+├── .github/                        # GitHub Actions CI/CD workflows
+├── requirements.txt                # maafw, loguru, pillow, pytz, requests, opencv-python
+├── package.json                    # Node.js dev tools (maa-tools, prettier-plugin-multiline-arrays)
+└── maatools.config.mts             # maatools configuration
+```
+
+## `agent/`
+
+The `agent/` directory contains all Python code. MFAAvalonia spawns this as a subprocess when you start a task; `main.py` manages the environment and starts the agent server.
+
+### `agent/main.py`
+
+The entry point for the Python agent. On startup it:
+
+1. Locates or creates a virtual environment alongside the script.
+2. Installs packages from `requirements.txt` if any are missing.
+3. Starts the MaaFramework agent server, which listens for task invocations from MFAAvalonia.
+
+You should not need to modify `main.py` unless you are changing how the virtual environment is managed or adding startup-time initialization.
+
+### `agent/custom/action/`
+
+Each file in this directory implements one or more custom actions — Python classes that MaaFramework calls when a pipeline task node references them by name. The registered name is set with the `@AgentServer.custom_action("name")` decorator.
+
+| File | Registered action | Purpose |
+|---|---|---|
+| `auto_fish.py` | `auto_fish` | Fishing mini-game automation (slider control, cast loop) |
+| `auto_make_coffee.py` | `auto_make_coffee` | Coffee crafting loop (start business, dismiss customers, claim reward) |
+| `auto_sell_fish.py` | `auto_sell_fish` | Automatic fish selling at the fish shop |
+| `auto_buy_fish_bait.py` | `auto_buy_fish_bait` | Automatic bait purchasing at the fish shop |
+| `utils.py` | — | Shared helpers: `get_image`, `match_template_in_region`, `click_rect` |
+
+`agent/custom/action/__init__.py` exports all action classes so that `agent/custom/__init__.py` can import them with a single `from .action import *`.
+
+### `agent/utils/`
+
+Shared Python utilities used across the custom actions.
+
+| File | Purpose |
+|---|---|
+| `logger.py` | loguru-based logger configured for MaaNTE |
+| `pienv.py` | Helpers for the Python interpreter environment |
+| `time.py` | Time and delay utilities |
+| `win32_process.py` | Win32 window helpers: `find_window_by_process`, `get_client_size` |
+
+## `assets/`
+
+The `assets/` directory contains everything MaaFramework and MFAAvalonia read at runtime: the GUI configuration, template images, OCR models, and pipeline definitions.
+
+### `assets/interface.json`
+
+The MFAAvalonia configuration file. It defines the task list, option controls, controller settings, and agent startup command. See the [interface.json reference](/develop/interface-json) for the full schema.
+
+### `assets/MaaCommonAssets/`
+
+A Git submodule pointing to the shared MaaFramework community assets. Clone with `--recurse-submodules` to populate this directory. It provides common pipeline components reused across MaaFramework projects.
+
+### `assets/resource/base/image/`
+
+OpenCV template images used by MaaFramework's `TemplateMatch` recognition. Each subdirectory groups images by feature:
+
+- `auto_fish/` — fishing mini-game UI elements
+- `auto_make_coffee/` — coffee crafting UI elements
+- Additional subdirectories for other features
+
+Images must be losslessly compressed PNG files. The pre-commit hook runs oxipng automatically on every commit to enforce this.
+
+### `assets/resource/base/model/ocr/`
+
+OCR model files (`det.onnx`, `rec.onnx`, `keys.txt`) used by MaaFramework's text recognition. These files are **not included in the repository** — they are too large to track in Git. Download them separately during setup. The directory is listed in `.gitignore`.
+
+<Warning>
+  The `model/ocr/` directory must be populated before running MaaNTE. Tasks that use OCR recognition will fail at startup if these files are missing.
+</Warning>
+
+### `assets/resource/base/pipeline/`
+
+MaaFramework task pipeline JSON files. Each file defines a set of task nodes describing what to recognize on screen and what action to perform. Files are organized by feature:
+
+| File / directory | Feature |
+|---|---|
+| `Fish/` | Fishing task pipeline nodes |
+| `auto_make_coffee.json` | Coffee crafting pipeline |
+| `auto_withdraw_money.json` | Café revenue collection pipeline |
+| `realtime_assist.json` | Real-time assistance pipeline |
+| `MouseMoveReset.json` | Mouse position reset utility |
+| `Button/` | Shared button click nodes |
+| `Common/` | Shared general-purpose nodes |
+
+## `deps/`
+
+MaaFramework binary files (`MaaFramework.dll`, the CLI, and related dependencies). These are **not included in the repository**. They are downloaded by the CI/CD release workflow and must be downloaded manually for local development. The directory is listed in `.gitignore`.
+
+## `docs/`
+
+Project documentation source files.
+
+```
+docs/
+├── README_en.md
+└── zh_cn/
+    └── develop/
+        ├── how_to_develop.md
+        ├── custom_configure.md
+        └── faq.md
+```
+
+The English Mintlify documentation site (this site) lives in a separate `docs/` directory at the repo root.
+
+## `.github/`
+
+GitHub Actions workflow files. The release workflow triggers on tag pushes and:
+
+1. Downloads MaaFramework binaries.
+2. Packages MFAAvalonia with the project resources.
+3. Creates a GitHub Release with the packaged archive attached.
+
+See [Tooling](/develop/tooling) for details on triggering a release.
+
+## Root configuration files
+
+| File | Purpose |
+|---|---|
+| `requirements.txt` | Python dependencies: `maafw`, `loguru`, `pillow`, `pytz`, `requests`, `opencv-python` |
+| `package.json` | Node.js dev tools: `prettier`, `maatools` |
+| `maatools.config.mts` | Configuration for the `maatools` pipeline linter/formatter |
+| `.prettierrc` | Prettier formatting rules for JSON and YAML files |
+| `.gitmodules` | Declares the `MaaCommonAssets` submodule |
+
+## What is and is not in the repository
+
+| Directory or file | In repo |
+|---|---|
+| `agent/` | Yes |
+| `assets/interface.json` | Yes |
+| `assets/MaaCommonAssets/` | Yes (submodule) |
+| `assets/resource/base/image/` | Yes |
+| `assets/resource/base/pipeline/` | Yes |
+| `assets/resource/base/model/ocr/` | **No** — download separately |
+| `deps/` | **No** — download separately |
+
+<Tip>
+  When cloning the repository, use `git clone --recurse-submodules` to also fetch `MaaCommonAssets`. If you already cloned without this flag, run `git submodule update --init` to populate it.
+</Tip>

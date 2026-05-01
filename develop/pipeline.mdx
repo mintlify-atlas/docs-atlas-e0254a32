@@ -1,0 +1,145 @@
+---
+title: "Pipeline JSON: Defining Automation Tasks in MaaNTE"
+description: "Learn how MaaNTE pipeline JSON files define task graphs, how to reference Python custom actions, and how to use VS Code tooling to build and debug tasks."
+---
+
+Pipeline JSON files are the primary way to define automation tasks in MaaNTE. Each file describes a set of task nodes that MaaFramework traverses at runtime. A node declares a recognition condition — typically a template image match within a screen region — and an action to perform when that condition is met. When a task requires logic beyond what a pipeline can express, a node can delegate to a Python custom action by name.
+
+## File location
+
+All pipeline files live under:
+
+```
+assets/resource/base/pipeline/
+```
+
+Files are organized by feature area. For example, fishing tasks are grouped in a `Fish/` subdirectory:
+
+```
+assets/resource/base/pipeline/
+├── auto_make_coffee.json
+├── auto_withdraw_money.json
+├── realtime_assist.json
+└── Fish/
+    └── (fishing pipeline JSONs)
+```
+
+Template images used by recognition nodes are stored in `assets/resource/base/image/`.
+
+## Task node structure
+
+Each pipeline file is a JSON object where keys are task names and values are node definitions. A node defines how MaaFramework recognizes when it should run and what it should do.
+
+The following example is based on the actual fishing pipeline in `assets/resource/base/pipeline/Fish/Fish.json`. `FishGameStart` detects that the fishing mini-game is active and then calls the `auto_fish` Python custom action to handle the reeling logic:
+
+```json assets/resource/base/pipeline/Fish/Fish.json
+{
+    "FishStart": {
+        "desc": "钓鱼功能主流程",
+        "max_hit": 5,
+        "next": [
+            "FishGameStart",
+            "[JumpBack]FishSceneWorldToPrepare",
+            "[JumpBack]FishScenePrepareToFishGame"
+        ]
+    },
+    "FishGameStart": {
+        "desc": "正在钓鱼游戏界面，执行钓鱼逻辑",
+        "recognition": "And",
+        "all_of": ["FishSceneOnFishGame"],
+        "action": "Custom",
+        "custom_action": "auto_fish",
+        "custom_action_param": {},
+        "next": [
+            "AutoSellFish",
+            "AutoBuyFishBait",
+            "FishStart",
+            "FishTaskExit"
+        ],
+        "on_error": ["FishTaskExitWithError"]
+    },
+    "AutoSellFish": {
+        "desc": "自动卖鱼",
+        "action": "Custom",
+        "custom_action": "auto_sell_fish",
+        "next": ["AutoBuyFishBait", "FishStart", "FishTaskExit"]
+    }
+}
+```
+
+For simpler tasks that only need image detection and a click — no Python action required — the real-time assist pipeline is a good reference:
+
+```json assets/resource/base/pipeline/realtime_assist.json
+{
+    "RealTimeSkipPlot": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": "realtime_assist/skip_story_btn.png",
+                "roi": [1000, 0, 1280, 100],
+                "threshold": 0.8
+            }
+        },
+        "action": {
+            "type": "Click"
+        },
+        "post_delay": 500,
+        "next": ["RealTimeSleep"]
+    }
+}
+```
+
+Key fields:
+
+- **`recognition`** — the detection method. Can be a string (`"DirectHit"`, `"And"`) or an object with `type` and `param`. `TemplateMatch` compares a template image against the screen.
+- **`template`** — path to the template image, relative to `assets/resource/base/image/`.
+- **`roi`** — `[x, y, width, height]` bounding box restricting where recognition runs on screen.
+- **`action`** — the action to perform when recognition succeeds. `Custom` delegates to a Python action; `Click` clicks the detected element; `ClickKey` sends a key press.
+- **`custom_action`** — the registered name of the Python custom action (the string passed to `@AgentServer.custom_action`).
+- **`custom_action_param`** — a value passed to the action's `run()` method as `argv.custom_action_param`. Can be an object or a JSON-encoded string.
+- **`next`** — list of task names to attempt after this node completes.
+- **`on_error`** — list of task names to attempt if this node fails.
+- **`post_delay`** — milliseconds to wait after the action runs before following `next`.
+
+<Note>
+  This is a simplified example. MaaFramework's pipeline format supports many more fields for timeouts, retries, sub-tasks, and recognition options. Refer to the [MaaFramework pipeline documentation](https://github.com/MaaXYZ/MaaFramework) for the full reference.
+</Note>
+
+## Adding a new pipeline task
+
+<Steps>
+  <Step title="Capture a template image">
+    Use the **Maa Pipeline Support** VS Code extension to take a screenshot of the game window. Crop the relevant UI element and save it as a PNG to `assets/resource/base/image/`. Use a descriptive filename that reflects the feature and state (for example, `Fish/bite_indicator_active.png`).
+  </Step>
+
+  <Step title="Select the ROI">
+    Use the extension's ROI selection tool to define a bounding box around the area where the element appears on screen. Copy the resulting `[x, y, width, height]` values into the node's `roi` field. Restricting recognition to a smaller region improves speed and reduces false positives.
+  </Step>
+
+  <Step title="Write the task node">
+    Add the new node to the appropriate pipeline JSON file. If you are calling a Python custom action, set `"action": "Custom"` and set `"custom_action"` to the registered action name. For nodes that only need clicks, key presses, or waits, use the built-in action types.
+  </Step>
+
+  <Step title="Connect the node to the task graph">
+    Add the new node's name to the `next` array of whatever node should lead to it, or use it as an entry point in `interface.json`. Verify that the task graph reaches a terminal node (a `StopTask` action or a node with an empty `next` list).
+  </Step>
+
+  <Step title="Debug with the VS Code extension">
+    Use the Maa Pipeline Support extension's debug runner to execute the pipeline against a live game window. The extension highlights which nodes fire, logs recognition results, and lets you adjust template or ROI values interactively.
+  </Step>
+</Steps>
+
+## VS Code tooling
+
+The **Maa Pipeline Support** extension (`nekosu.maa-support`) provides four capabilities that are directly useful when working on pipelines:
+
+- **Screenshot capture** — take a screenshot from the connected game window without leaving VS Code.
+- **ROI selection** — draw a rectangle on the screenshot to generate a `roi` array.
+- **Color picker** — sample pixel colors from the screenshot for use with `ColorMatch` recognition.
+- **Pipeline debugger** — run individual task nodes against the live game window and inspect recognition output.
+
+Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nekosu.maa-support).
+
+<Tip>
+  Run `pre-commit run --all-files` before committing pipeline changes. The Prettier hook formats JSON files, and the oxipng hook applies lossless compression to any new PNG template images you added.
+</Tip>

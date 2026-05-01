@@ -1,0 +1,78 @@
+---
+title: "MaaNTE FAQ: Setup, Fishing, and Common Questions"
+description: "Answers to common questions about MaaNTE setup, fishing automation, first-run behavior, Windows requirements, and staying up to date."
+---
+
+MaaNTE is a Windows automation assistant for Neverness to Everness. This page addresses the most common questions from new and returning users, covering everything from initial setup to expected tool behavior.
+
+<AccordionGroup>
+  <Accordion title="I can't find how to launch MaaNTE">
+    Download the latest release package from the [GitHub releases page](https://github.com/1bananachicken/MaaNTE/releases). Extract the archive and run `MaaNTE.exe` directly — no installation step is required.
+
+    <Warning>
+      Do not clone the repository unless you have development needs. The source tree alone does not include the pre-built binaries required to run MaaNTE.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Fishing automation is not working">
+    Work through each item in the checklist below before reporting an issue.
+
+    <Steps>
+      <Step title="Run as administrator">
+        Right-click `MaaNTE.exe` and choose **Run as administrator**. Many input functions depend on elevated privileges and will silently fail without them.
+      </Step>
+      <Step title="Set game resolution to 1280×720 windowed">
+        Open the in-game settings and set the resolution to **1280×720** in windowed mode. MaaNTE's image recognition is calibrated to this resolution — other resolutions will cause detection to fail.
+      </Step>
+      <Step title="Enable Auto Fishing in the GUI">
+        Confirm that the **Auto Fishing** toggle is turned on inside the MaaNTE interface before starting a session.
+      </Step>
+      <Step title="Move MaaNTE to an ASCII-only path">
+        Make sure the folder path to MaaNTE contains only ASCII characters. Paths with Chinese characters or full-width characters (for example, `C:\用户\MaaNTE`) will cause the tool to malfunction. Move MaaNTE to a path such as `C:\MaaNTE`.
+      </Step>
+      <Step title="Temporarily disable antivirus software">
+        Antivirus programs frequently flag automation tools that simulate mouse and keyboard input. If the steps above do not resolve the issue, disable your antivirus temporarily to determine whether it is blocking MaaNTE.
+
+        <Note>
+          Re-enable your antivirus after testing and consider adding an exclusion for the MaaNTE folder.
+        </Note>
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="A pop-up in the bottom right corner says 'Mirror not supported'">
+    This notification comes from the auto-update component (Mirror酱), which requires additional configuration that is not set up out of the box. It does **not** affect any automation functionality. You can safely dismiss it and continue using MaaNTE normally.
+  </Accordion>
+
+  <Accordion title="Coffee brewing is taking over my mouse">
+    This is expected behavior. The coffee brewing task requires the **Seize** input mode, which temporarily takes exclusive control of your mouse to perform the in-game interactions. Your mouse will be returned to normal control when the task finishes. Do not attempt to move the mouse manually while Seize mode is active.
+  </Accordion>
+
+  <Accordion title="The first launch is very slow">
+    On the first run, MaaNTE automatically creates a Python virtual environment and installs all required dependencies (including `maafw`, `loguru`, `pillow`, `pytz`, `requests`, and `opencv-python`). This process can take several minutes depending on your internet connection and hardware. Subsequent launches will start significantly faster.
+
+    <Tip>
+      If the installation appears to stall, check `debug/maa.log` for progress output or error messages.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Does MaaNTE work on macOS or Linux?">
+    No. MaaNTE uses the Windows Win32 API for mouse and keyboard input simulation, and it relies on Windows-specific process management to interact with the game (`HTGame.exe`). It is only supported on Windows.
+  </Accordion>
+
+  <Accordion title="Where are the log files?">
+    Log files are saved in the `debug/` directory inside your MaaNTE folder. The main MaaFramework log is located at `debug/maa.log`. Check this file first when diagnosing unexpected behavior.
+  </Accordion>
+
+  <Accordion title="How do I update MaaNTE?">
+    Download the latest release archive from the [GitHub releases page](https://github.com/1bananachicken/MaaNTE/releases) and replace your existing installation with the new files. There is no in-app updater — updates are distributed exclusively through GitHub releases.
+
+    <Warning>
+      Only download MaaNTE from the official GitHub repository. Third-party distributions may contain malware.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Why does my antivirus flag MaaNTE as a threat?">
+    Automation tools that programmatically control mouse and keyboard input are commonly detected as potentially unwanted programs (PUPs) or heuristic threats by antivirus software, even when they are completely benign. MaaNTE is open source — you can review the full source code on GitHub to verify its behavior. If your antivirus blocks it, add an exclusion for the MaaNTE folder or temporarily disable real-time protection while using the tool.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,80 @@
+---
+title: "System Requirements for Running MaaNTE on Windows"
+description: "Full system requirements for MaaNTE: Windows OS, game resolution, administrator access, file path rules, and mouse input mode for coffee brewing."
+---
+
+Before downloading MaaNTE, confirm that your system and game setup meet all of the requirements below. Missing any of these is the most common cause of tasks failing to start or run correctly.
+
+## Operating system
+
+MaaNTE runs on **Windows only**. It uses the Win32 API for input control and detects the game via the `HTGame.exe` process. Linux and macOS are not supported.
+
+## Game
+
+| Requirement | Detail |
+|---|---|
+| Game | Neverness to Everness must be installed and running |
+| Display mode | Windowed (not fullscreen, not borderless) |
+| Resolution | Exactly **1280×720** |
+
+MaaNTE's image recognition templates are calibrated for 1280×720. Any other resolution will cause task detection to fail.
+
+<Note>
+  The fishing algorithm supports up to **120 FPS**. Higher frame rates will not cause errors, but the algorithm is designed and tested at 120 FPS.
+</Note>
+
+## Permissions
+
+MaaNTE requires **administrator rights** to run. It uses Win32 input control to send mouse and keyboard events to the game. Without administrator access, input will be blocked and no task will be able to progress.
+
+Always right-click **MaaNTE.exe** and choose **Run as administrator**.
+
+## File path
+
+The folder path where you extract MaaNTE must not contain:
+
+- Chinese characters
+- Other full-width or non-ASCII characters
+
+For example:
+
+| Path | Status |
+|---|---|
+| `C:\Tools\MaaNTE` | Allowed |
+| `D:\Games\Automation\MaaNTE` | Allowed |
+| `C:\工具\MaaNTE` | Not allowed |
+| `C:\用户\MaaNTE` | Not allowed |
+
+Paths with unsupported characters will cause the Python agent or GUI to fail on startup.
+
+## Python
+
+MaaNTE's agent is Python-based and requires **Python 3.11 or later**.
+
+- **Release builds**: Python is bundled in the release package. You do not need to install Python manually to use the release build.
+- **Developer builds**: If you are running from source or contributing to the project, you must install Python 3.11+ yourself.
+
+The virtual environment and all pip dependencies (`maafw`, `loguru`, `pillow`, `pytz`, `requests`, `opencv-python`) are installed automatically from `requirements.txt` on first launch.
+
+## Mouse input mode for coffee brewing
+
+The **Auto Coffee Brewing** task requires the MaaFramework controller's mouse input mode to be set to **Seize**.
+
+<Warning>
+  In Seize mode, MaaNTE temporarily takes control of your mouse during brewing cycles. Do not move your mouse while a coffee brewing task is running.
+</Warning>
+
+This setting does not affect other tasks. Fishing, revenue collection, and real-time assist all work with the default input mode.
+
+## Antivirus
+
+MaaNTE uses Win32 input control and process detection, which are common heuristics for automation tools. Your antivirus software may flag MaaNTE as suspicious or quarantine its files.
+
+If installation fails or tasks are blocked, either:
+
+- Add the MaaNTE folder as an exception in your antivirus settings, or
+- Temporarily disable real-time protection while using MaaNTE.
+
+<Note>
+  This behavior is expected and does not mean MaaNTE is malicious. Always verify you downloaded MaaNTE from the [official GitHub releases page](https://github.com/1bananachicken/MaaNTE/releases).
+</Note>

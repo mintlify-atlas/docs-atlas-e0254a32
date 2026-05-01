@@ -1,0 +1,338 @@
+---
+title: "interface.json Schema Reference for MaaNTE Tasks"
+description: "Complete reference for assets/interface.json — the MFAAvalonia config file that defines tasks, options, controller settings, and agent startup for MaaNTE."
+---
+
+`assets/interface.json` is the single configuration file that tells MFAAvalonia how to launch MaaNTE, which tasks to expose in the GUI, and how each task's options should behave. When you add a new task or option to MaaNTE, this file is the entry point. MFAAvalonia reads it at startup and generates the task list, toggle controls, and input fields automatically — no GUI code required.
+
+## Complete example
+
+```json assets/interface.json
+{
+    "interface_version": 2,
+    "name": "MaaNTE",
+    "description": "异环小助手，由MAAFramework强力驱动！",
+    "contact": "QQ群: 1103323319",
+    "license": "MIT",
+    "welcome": "首次使用！欢迎使用 MaaNTE!",
+    "github": "https://github.com/1bananachicken/MaaNTE",
+    "version": "0.0.1",
+    "mirrorchyan_rid": "MaaNTE",
+    "mirrorchyan_multiplatform": true,
+    "controller": [
+        {
+            "name": "桌面端",
+            "type": "Win32",
+            "win32": {
+                "class_regex": ".*",
+                "window_regex": "^\\s*(异环|NTE)\\s*$",
+                "screencap": "PrintWindow",
+                "mouse": "SendMessageWithWindowPos",
+                "keyboard": "PostMessage"
+            }
+        }
+    ],
+    "resource": [
+        {
+            "name": "官服",
+            "path": ["resource/base"]
+        }
+    ],
+    "agent": {
+        "child_exec": "python",
+        "child_args": ["../agent/main.py"]
+    },
+    "task": [
+        {
+            "name": "钓鱼任务",
+            "entry": "FishEntrance",
+            "option": ["钓鱼循环次数", "钓鱼数量", "自动卖鱼", "自动买鱼饵", "鱼饵识别阈值"]
+        },
+        {
+            "name": "领取一咖舍收益",
+            "entry": "领取一咖舍收益"
+        },
+        {
+            "name": "自动做咖啡",
+            "entry": "AutoMakeCoffee",
+            "option": ["循环次数"]
+        },
+        {
+            "name": "实时辅助",
+            "entry": "RealTimeTaskMain",
+            "option": ["RealTimeCheckInterval", "RealTimeAutoSkip", "RealTimeAutoTeleport"]
+        }
+    ],
+    "option": {
+        "钓鱼循环次数": {
+            "type": "input",
+            "label": "最大循环次数",
+            "description": "限制整个钓鱼循环最多执行多少次",
+            "inputs": [{"name": "max_hit", "label": "循环次数", "default": "5", "pipeline_type": "int", "verify": "^\\d+$"}],
+            "pipeline_override": {"FishStart": {"max_hit": "{max_hit}"}}
+        },
+        "自动卖鱼": {
+            "type": "switch",
+            "label": "自动卖鱼",
+            "description": "是否启用自动卖鱼功能",
+            "cases": [
+                {"name": "Yes", "label": "启用", "pipeline_override": {"FishStart": {"enabled": true}}},
+                {"name": "No", "label": "禁用", "pipeline_override": {"AutoSellFish": {"enabled": false}}}
+            ]
+        },
+        "RealTimeAutoSkip": {
+            "type": "switch",
+            "label": "自动剧情",
+            "description": "是否自动跳过剧情",
+            "cases": [
+                {"name": "Yes", "label": "开启", "option": ["RealTimeAutoSkipAll"]},
+                {"name": "No", "label": "关闭", "pipeline_override": {"RealTimeSkipPlot": {"enabled": false}}}
+            ],
+            "default_case": "Yes"
+        }
+    }
+}
+```
+
+## Top-level fields
+
+<ParamField path="interface_version" type="number" required>
+  Schema version. Use `2` for all current MaaNTE configurations.
+</ParamField>
+
+<ParamField path="name" type="string" required>
+  Display name shown in the MFAAvalonia title bar.
+</ParamField>
+
+<ParamField path="description" type="string">
+  Short description shown in the MFAAvalonia about panel.
+</ParamField>
+
+<ParamField path="contact" type="string">
+  Support contact info — for example, a QQ group number. Shown in MFAAvalonia.
+</ParamField>
+
+<ParamField path="license" type="string">
+  SPDX license identifier (e.g. `"MIT"`).
+</ParamField>
+
+<ParamField path="welcome" type="string">
+  One-time welcome message shown on first launch.
+</ParamField>
+
+<ParamField path="github" type="string">
+  GitHub repository URL. Used for update checks and the "open in browser" link.
+</ParamField>
+
+<ParamField path="version" type="string" required>
+  Current project version string (e.g. `"0.0.1"`).
+</ParamField>
+
+<ParamField path="mirrorchyan_rid" type="string">
+  Resource ID used with MirrorChyan for update distribution.
+</ParamField>
+
+<ParamField path="mirrorchyan_multiplatform" type="boolean">
+  When `true`, MirrorChyan treats this as a multi-platform package.
+</ParamField>
+
+## `controller` array
+
+Each entry in `controller` defines a method for MaaFramework to capture and control the game window. MaaNTE uses a single Win32 controller.
+
+<ParamField path="controller[].name" type="string" required>
+  Display name shown in the controller selector (e.g. `"桌面端"`).
+</ParamField>
+
+<ParamField path="controller[].type" type="string" required>
+  Controller backend. MaaNTE uses `"Win32"` to target a native Windows window.
+</ParamField>
+
+<ParamField path="controller[].win32" type="object">
+  Win32-specific settings. Required when `type` is `"Win32"`.
+
+  <Expandable title="win32 properties">
+    <ParamField path="class_regex" type="string">
+      Regex to match the window's Win32 class name. Use `".*"` to match any class.
+    </ParamField>
+    <ParamField path="window_regex" type="string">
+      Regex to match the window title. MaaNTE uses `"^\\s*(异环|NTE)\\s*$"` to match both the Chinese and English window titles.
+    </ParamField>
+    <ParamField path="screencap" type="string">
+      Screenshot method. `"PrintWindow"` works for most Windows games including NTE.
+    </ParamField>
+    <ParamField path="mouse" type="string">
+      Mouse input method. `"SendMessageWithWindowPos"` sends mouse messages directly to the window, allowing background control.
+    </ParamField>
+    <ParamField path="keyboard" type="string">
+      Keyboard input method. `"PostMessage"` posts keyboard messages to the window message queue.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## `resource` array
+
+Defines the resource packs that MaaFramework loads. Each entry maps a display name to one or more directories under `assets/`.
+
+<ParamField path="resource[].name" type="string" required>
+  Display name shown in the resource selector (e.g. `"官服"`).
+</ParamField>
+
+<ParamField path="resource[].path" type="string[]" required>
+  List of resource directory paths relative to `assets/`. MaaNTE uses `["resource/base"]` for the official server resource pack.
+</ParamField>
+
+## `agent` object
+
+Configures the Python subprocess that MFAAvalonia spawns to run custom actions.
+
+<ParamField path="agent.child_exec" type="string" required>
+  Executable to launch. Set to `"python"` to use the system Python or the venv Python after `agent/main.py` activates it.
+</ParamField>
+
+<ParamField path="agent.child_args" type="string[]" required>
+  Arguments passed to `child_exec`. `["../agent/main.py"]` points to the agent entry point relative to the `assets/` directory.
+</ParamField>
+
+## `task` array
+
+Each entry in `task` defines one automation task that appears in the MFAAvalonia task list.
+
+<ParamField path="task[].name" type="string" required>
+  Display name shown in the task list (e.g. `"钓鱼任务"`).
+</ParamField>
+
+<ParamField path="task[].entry" type="string" required>
+  Name of the pipeline task node to run when this task is started. Must match a node defined in one of the pipeline JSON files under `assets/resource/base/pipeline/`.
+</ParamField>
+
+<ParamField path="task[].option" type="string[]">
+  List of option keys (defined in the top-level `option` object) that MFAAvalonia displays as controls for this task. Options are shown in the order listed. Omit this field if the task has no configurable options.
+</ParamField>
+
+## `option` object
+
+The `option` object is a map from option name to option configuration. Options referenced by tasks are rendered as GUI controls. MaaNTE uses two option types: `"input"` and `"switch"`.
+
+### Input options
+
+An `"input"` option renders a text field in the GUI and injects the value into a pipeline task via `pipeline_override`.
+
+```json
+"钓鱼循环次数": {
+    "type": "input",
+    "label": "最大循环次数",
+    "description": "限制整个钓鱼循环最多执行多少次",
+    "inputs": [
+        {
+            "name": "max_hit",
+            "label": "循环次数",
+            "default": "5",
+            "pipeline_type": "int",
+            "verify": "^\\d+$"
+        }
+    ],
+    "pipeline_override": {
+        "FishStart": {"max_hit": "{max_hit}"}
+    }
+}
+```
+
+<ParamField path="option.*.type" type="string" required>
+  Option type. Use `"input"` for text fields, `"switch"` for toggles.
+</ParamField>
+
+<ParamField path="option.*.label" type="string">
+  Human-readable label shown above the control in the GUI.
+</ParamField>
+
+<ParamField path="option.*.description" type="string">
+  Longer description shown as a tooltip or help text.
+</ParamField>
+
+<ParamField path="option.*.inputs" type="object[]">
+  List of input fields rendered for this option. Each entry defines one text field.
+
+  <Expandable title="input item properties">
+    <ParamField path="name" type="string" required>
+      Variable name. Used as the placeholder key in `pipeline_override` (e.g. `"{max_hit}"`).
+    </ParamField>
+    <ParamField path="label" type="string">
+      Label shown next to the text field.
+    </ParamField>
+    <ParamField path="default" type="string">
+      Default value pre-filled in the field.
+    </ParamField>
+    <ParamField path="pipeline_type" type="string">
+      Type cast applied before injecting into the pipeline. Use `"int"` for integers.
+    </ParamField>
+    <ParamField path="verify" type="string">
+      Regex pattern used to validate the input before the task runs. For example, `"^\\d+$"` accepts only digits.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="option.*.pipeline_override" type="object">
+  Map of pipeline task name → property overrides. The property values can reference input variable values using the `"{variable_name}"` syntax. MaaFramework merges these overrides into the named pipeline task at runtime.
+</ParamField>
+
+### Switch options
+
+A `"switch"` option renders a toggle or radio group. Each case can apply its own `pipeline_override` or trigger sub-options.
+
+```json
+"RealTimeAutoSkip": {
+    "type": "switch",
+    "label": "自动剧情",
+    "description": "是否自动跳过剧情",
+    "cases": [
+        {"name": "Yes", "label": "开启", "option": ["RealTimeAutoSkipAll"]},
+        {"name": "No", "label": "关闭", "pipeline_override": {"RealTimeSkipPlot": {"enabled": false}}}
+    ],
+    "default_case": "Yes"
+}
+```
+
+<ParamField path="option.*.cases" type="object[]">
+  List of selectable cases for a switch option.
+
+  <Expandable title="case properties">
+    <ParamField path="name" type="string" required>
+      Internal identifier for this case (e.g. `"Yes"`, `"No"`).
+    </ParamField>
+    <ParamField path="label" type="string">
+      Display label shown in the GUI toggle or radio button.
+    </ParamField>
+    <ParamField path="pipeline_override" type="object">
+      Pipeline task overrides applied when this case is selected. Same format as the top-level `pipeline_override`.
+    </ParamField>
+    <ParamField path="option" type="string[]">
+      Additional sub-options that appear when this case is selected. Referenced keys must exist in the top-level `option` object.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="option.*.default_case" type="string">
+  Name of the case that is selected by default when the task is loaded. If omitted, no case is pre-selected.
+</ParamField>
+
+## Adding a new task
+
+<Steps>
+  <Step title="Define the pipeline entry point">
+    Create or identify a task node in a pipeline JSON file under `assets/resource/base/pipeline/`. The node's key becomes the `entry` value.
+  </Step>
+  <Step title="Add options if needed">
+    Add new entries to the top-level `option` object for any configurable parameters. Choose `"input"` for numeric or text values and `"switch"` for toggles.
+  </Step>
+  <Step title="Register the task">
+    Add a new object to the `task` array. Set `entry` to match the pipeline node name and list your option keys in `option`.
+  </Step>
+  <Step title="Reload MFAAvalonia">
+    Restart MFAAvalonia. It reads `interface.json` at launch, so your new task and its controls will appear immediately.
+  </Step>
+</Steps>
+
+<Note>
+  Option names in the `task[].option` array must exactly match keys in the top-level `option` object. A mismatch causes the control to silently not render.
+</Note>

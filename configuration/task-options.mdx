@@ -1,0 +1,179 @@
+---
+title: 'Task Options Configuration for MaaNTE Automation'
+description: 'Configure fishing, coffee brewing, and real-time assistance task options in the MFAAvalonia GUI before running MaaNTE automation tasks.'
+---
+
+Task options in MaaNTE are set through the MFAAvalonia GUI before you start a task run. Each option maps to a `pipeline_override` that modifies the underlying MaaFramework pipeline JSON at runtime — there is no separate configuration file. The sections below document every available option organized by task.
+
+<AccordionGroup>
+  <Accordion title="Fishing (FishEntrance)">
+    These options apply when running the **FishEntrance** task.
+
+    | Option | Type | Default | Description |
+    |--------|------|---------|-------------|
+    | 钓鱼循环次数 (Fishing Loop Count) | Input | `5` | Maximum number of complete fishing cycles to run |
+    | 钓鱼数量 (Fish Count per Cast) | Input | `99` | Number of fish to catch per cast |
+    | 自动卖鱼 (Auto Sell Fish) | Switch | — | Automatically sell fish after catching |
+    | 自动买鱼饵 (Auto Buy Bait) | Switch | — | Automatically purchase bait when needed |
+    | 鱼饵识别阈值 (Bait Recognition Threshold) | Select | `0.8` | Confidence threshold for bait position detection |
+
+    **钓鱼循环次数 — Fishing Loop Count**
+
+    Controls how many times the full fishing cycle repeats before stopping. Adjust this down if you want a short unattended session, or increase it for longer runs.
+
+    ```json
+    // pipeline_override
+    {
+      "FishStart": {
+        "max_hit": 5
+      }
+    }
+    ```
+
+    **钓鱼数量 — Fish Count per Cast**
+
+    Sets how many fish to reel in per individual cast. Values above 99 are not recommended by the game.
+
+    ```json
+    // pipeline_override
+    {
+      "FishGameStart": {
+        "custom_action_param": {
+          "count": 99
+        }
+      }
+    }
+    ```
+
+    **自动卖鱼 — Auto Sell Fish**
+
+    When enabled, MaaNTE automatically sells caught fish. Disable this if you want to keep your catch.
+
+    - **Yes** — enables the `AutoSellFish` pipeline node
+    - **No** — disables `AutoSellFish`
+
+    **自动买鱼饵 — Auto Buy Bait**
+
+    When enabled, MaaNTE purchases bait automatically when supply runs low. Pair this with **Auto Sell Fish** for fully unattended sessions.
+
+    - **Yes** — enables the `AutoBuyFishBait` pipeline node
+    - **No** — disables `AutoBuyFishBait`
+
+    **鱼饵识别阈值 — Bait Recognition Threshold**
+
+    The minimum confidence score required to identify the bait slot on screen. Lower this value if MaaNTE fails to click the bait position reliably.
+
+    | Value | When to use |
+    |-------|-------------|
+    | `0.8` | Default; works for most setups |
+    | `0.7` | Use if bait is occasionally missed |
+    | `0.6` | Use if bait is frequently not detected |
+
+    ```json
+    // pipeline_override
+    {
+      "AutoBuyFishBait": {
+        "custom_action_param": {
+          "found_bait_threshold": 0.8
+        }
+      }
+    }
+    ```
+
+    <Tip>If bait detection fails consistently, try lowering the threshold to `0.7` before dropping to `0.6`.</Tip>
+  </Accordion>
+
+  <Accordion title="Coffee Brewing (AutoMakeCoffee)">
+    These options apply when running the **AutoMakeCoffee** task.
+
+    | Option | Type | Default | Description |
+    |--------|------|---------|-------------|
+    | 循环次数 (Loop Count) | Input | `10` | Number of coffee brewing cycles to complete |
+
+    **循环次数 — Loop Count**
+
+    Controls how many brewing cycles run before the task stops. Increase this for bulk brewing sessions.
+
+    ```json
+    // pipeline_override
+    {
+      "AutoMakeCoffee": {
+        "custom_action_param": {
+          "count": 10
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Real-time Assistance (RealTimeTaskMain)">
+    These options apply when running the **RealTimeTaskMain** task, which continuously monitors the game screen and reacts to events.
+
+    | Option | Type | Default | Description |
+    |--------|------|---------|-------------|
+    | RealTimeCheckInterval (Check Interval) | Input | `500` | Milliseconds between screen checks |
+    | RealTimeAutoSkip (Auto Story Skip) | Switch | Yes | Automatically skip story cutscenes |
+    | RealTimeAutoSkipAll (Skip All Story) | Switch | Yes | Click skip when any skip button is detected |
+    | RealTimeAutoTeleport (Auto Teleport) | Switch | No | Automatically click detected teleport points |
+    | RealTimeAutoTeleportWitte (Witte Tower) | Switch | Yes | Monitor the Wittheimer Tower teleport point |
+    | RealTimeAutoTeleportPhone (ReroRero Phone Booth) | Switch | Yes | Monitor the ReroRero phone booth teleport point |
+
+    ---
+
+    **RealTimeCheckInterval — Check Interval**
+
+    The delay between consecutive screen scans, in milliseconds. Lower values make detection more responsive but increase CPU usage.
+
+    ```json
+    // pipeline_override
+    {
+      "RealTimeSleep": {
+        "post_delay": 500
+      }
+    }
+    ```
+
+    <Note>The default of 500 ms is a reasonable balance. Values below 200 ms may cause performance issues on slower machines.</Note>
+
+    ---
+
+    **RealTimeAutoSkip — Auto Story Skip**
+
+    Master switch for story-skipping behaviour. When disabled, the game will not skip any cutscenes regardless of sub-option settings.
+
+    - **Yes** (default) — activates the `RealTimeAutoSkipAll` sub-option
+    - **No** — disables `RealTimeSkipPlot`
+
+    **RealTimeAutoSkipAll — Skip All Story**
+
+    Controls whether MaaNTE clicks the skip button whenever it appears. This sub-option is only active when **RealTimeAutoSkip** is set to Yes.
+
+    - **Yes** (default) — enables `RealTimeSkipPlot`
+    - **No** — disables `RealTimeSkipPlot`
+
+    ---
+
+    **RealTimeAutoTeleport — Auto Teleport**
+
+    Master switch for automatic teleportation. When enabled, MaaNTE clicks detected teleport prompts without user input.
+
+    - **Yes** — activates the Witte Tower and ReroRero Phone Booth sub-options
+    - **No** (default) — disables both `RealTimeTeleportWitte` and `RealTimeTeleportPhone`
+
+    <Warning>Enabling auto-teleport will move your character automatically whenever a monitored teleport point is detected. Make sure you want unattended teleportation before enabling this option.</Warning>
+
+    **RealTimeAutoTeleportWitte — Witte Tower Teleport**
+
+    Controls whether MaaNTE monitors and clicks the Wittheimer Tower teleport point. Only active when **RealTimeAutoTeleport** is Yes.
+
+    - **Yes** (default) — monitors for the Wittheimer Tower prompt
+    - **No** — ignores the Wittheimer Tower teleport
+
+    **RealTimeAutoTeleportPhone — ReroRero Phone Booth Teleport**
+
+    Controls whether MaaNTE monitors and clicks the ReroRero phone booth teleport point. Only active when **RealTimeAutoTeleport** is Yes.
+
+    - **Yes** (default) — monitors for the ReroRero phone booth prompt
+    - **No** — ignores the ReroRero phone booth teleport
+  </Accordion>
+</AccordionGroup>

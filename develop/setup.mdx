@@ -1,0 +1,115 @@
+---
+title: "Development Environment Setup for MaaNTE Contributors"
+description: "Set up a local MaaNTE development environment: fork the repo, install MaaFramework binaries, download OCR models, and configure VS Code and pre-commit."
+---
+
+This guide walks you through setting up a complete local development environment for MaaNTE. You need Git, Python 3.11 or later, and a GitHub account before you begin.
+
+<Steps>
+  <Step title="Fork the repository">
+    Go to [https://github.com/1bananachicken/MaaNTE](https://github.com/1bananachicken/MaaNTE) and click **Fork**, then **Create Fork**. This creates your own copy of the repository under your GitHub account where you can push branches and open pull requests.
+  </Step>
+
+  <Step title="Clone with submodules">
+    Clone your fork and initialize the `MaaCommonAssets` submodule in one command:
+
+    ```bash
+    git clone --recursive https://github.com/<your-username>/MaaNTE.git
+    ```
+
+    If you already cloned without `--recursive`, initialize the submodule afterward:
+
+    ```bash
+    git submodule update --init --recursive
+    ```
+  </Step>
+
+  <Step title="Download MaaFramework binaries">
+    MaaFramework binaries are not included in the repository. Download the latest release from the MaaFramework releases page and extract it into the `deps/` folder at the root of the repository:
+
+    [https://github.com/MaaXYZ/MaaFramework/releases](https://github.com/MaaXYZ/MaaFramework/releases)
+
+    After extraction, `deps/` should contain the MaaFramework DLLs and supporting files.
+
+    <Note>
+      The `deps/` folder is listed in `.gitignore`. Do not commit MaaFramework binaries to the repository.
+    </Note>
+  </Step>
+
+  <Step title="Download OCR model resources">
+    MaaNTE uses PaddleOCR v5 for text recognition. The model files are not stored in the repository and must be downloaded separately.
+
+    Download the Chinese OCR package:
+
+    ```
+    https://download.maafw.xyz/MaaCommonAssets/OCR/ppocr_v5/ppocr_v5-zh_cn.zip
+    ```
+
+    Extract the archive and place the following three files into `assets/resource/model/ocr/`:
+
+    - `det.onnx`
+    - `keys.txt`
+    - `rec.onnx`
+
+    <Warning>
+      The `assets/resource/model/` directory is `.gitignore`d. Never commit OCR model files to the repository. CI/CD workflows download and configure OCR automatically during release builds.
+    </Warning>
+  </Step>
+
+  <Step title="Install Python 3.11 or later">
+    MaaNTE's agent and custom actions require Python 3.11 or later. On first launch, `agent/main.py` creates a virtual environment and installs all dependencies from `requirements.txt` automatically. For development, you can also create the environment manually:
+
+    ```bash
+    python -m venv .venv
+    .venv\Scripts\activate
+    pip install -r requirements.txt
+    ```
+  </Step>
+
+  <Step title="Install VS Code extensions">
+    Two VS Code extensions are recommended for working on MaaNTE:
+
+    - **Maa Pipeline Support** (`nekosu.maa-support`) — provides pipeline debugging, in-game screenshot capture, ROI region selection, and a color picker. This is the primary tool for working with pipeline JSON files and template images.
+    - **markdownlint** (`DavidAnson.vscode-markdownlint`) — enforces Markdown formatting rules across documentation files.
+
+    Install both from the VS Code Extensions panel or from the Marketplace:
+
+    - [Maa Pipeline Support](https://marketplace.visualstudio.com/items?itemName=nekosu.maa-support)
+    - [markdownlint](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint)
+  </Step>
+
+  <Step title="Set up pre-commit hooks">
+    MaaNTE uses pre-commit hooks to enforce consistent formatting before each commit. The hooks run automatically on staged files:
+
+    - **Prettier** — formats JSON and YAML files.
+    - **markdownlint** — lints Markdown files.
+    - **oxipng** — applies lossless compression to PNG template images.
+
+    Install and activate the hooks:
+
+    ```bash
+    pip install pre-commit
+    pre-commit install
+    ```
+
+    After running `pre-commit install`, the hooks run automatically on every `git commit`. To run them manually against all files:
+
+    ```bash
+    pre-commit run --all-files
+    ```
+  </Step>
+
+  <Step title="Submit pull requests to the dev branch">
+    All pull requests must target the `dev` branch, not `main`. The `main` branch is reserved for stable releases.
+
+    Before opening a PR, confirm that:
+
+    - Your branch is up to date with `upstream/dev`.
+    - Pre-commit hooks pass locally.
+    - Any new pipeline tasks or custom actions are tested against a running game session.
+  </Step>
+</Steps>
+
+<Tip>
+  Use the Maa Pipeline Support extension to take screenshots directly from a running game window and select ROI coordinates interactively. This saves significant time when adding or adjusting template images and recognition regions.
+</Tip>

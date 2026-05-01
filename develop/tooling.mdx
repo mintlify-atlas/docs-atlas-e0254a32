@@ -1,0 +1,141 @@
+---
+title: "MaaNTE Dev Tooling: Extensions, Hooks, and CI/CD"
+description: "Set up VS Code extensions, pre-commit hooks, and GitHub Actions for MaaNTE development. Covers oxipng, Prettier, markdownlint, and the CI/CD release workflow."
+---
+
+MaaNTE uses a small set of development tools to keep code, pipeline JSON, images, and documentation consistent. This page covers the recommended VSCode extensions, the pre-commit hook setup, and the GitHub Actions workflow that packages and publishes releases.
+
+## Requirements
+
+Before installing any tooling, make sure the following are available on your machine:
+
+| Requirement | Minimum version | Purpose |
+|---|---|---|
+| Python | 3.11+ | Agent code and pre-commit |
+| Node.js | LTS | Prettier and maatools |
+| Git | Any recent version | Version control and submodule management |
+
+## VSCode extensions
+
+Two extensions are recommended for MaaNTE development.
+
+### Maa Pipeline Support
+
+**Extension ID:** `nekosu.maa-support`
+
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nekosu.maa-support).
+
+This extension provides MaaFramework-specific tooling directly in the editor:
+
+- **Pipeline debugging** — run and step through pipeline task nodes without launching the full application.
+- **Screenshot capture** — take screenshots of the target window from within VS Code.
+- **ROI selection** — draw bounding boxes on a screenshot and copy the resulting region-of-interest coordinates into pipeline JSON.
+- **Color picker** — sample pixel colors from a screenshot for use in color-match recognition tasks.
+
+The ROI selection and color picker tools significantly speed up the process of adding new recognition targets to `assets/resource/base/pipeline/`.
+
+### markdownlint
+
+**Extension ID:** `DavidAnson.vscode-markdownlint`
+
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=DavidAnson.vscode-markdownlint).
+
+Highlights Markdown style violations inline as you write. Enforces the same rules as the `markdownlint-cli2` pre-commit hook, so you catch issues before committing.
+
+## Pre-commit hooks
+
+Pre-commit hooks run automatically before each `git commit` and enforce formatting on changed files. MaaNTE uses three hooks:
+
+| Hook | Files | Tool |
+|---|---|---|
+| JSON and YAML formatting | `*.json`, `*.yaml`, `*.yml` | Prettier |
+| Markdown linting | `*.md`, `*.mdx` | markdownlint-cli2 |
+| PNG optimization | `*.png` | oxipng (lossless, `-o 2`) |
+
+### Setup
+
+<Steps>
+  <Step title="Install pre-commit">
+    ```bash
+    pip install pre-commit
+    ```
+  </Step>
+  <Step title="Install the hooks into your local repo">
+    Run this once from the repository root. It writes hook scripts into `.git/hooks/`.
+
+    ```bash
+    pre-commit install
+    ```
+  </Step>
+  <Step title="Verify the hooks are working">
+    Stage a file and commit. The hooks run automatically. You can also run them manually against all files:
+
+    ```bash
+    pre-commit run --all-files
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Prettier and markdownlint-cli2 are installed automatically by pre-commit into an isolated environment — you do not need to install them manually. oxipng must be available on your `PATH`. Install it from your system package manager or from the [oxipng releases page](https://github.com/shssoichiro/oxipng/releases).
+</Note>
+
+### What each hook does
+
+**Prettier** reformats JSON and YAML files according to the rules in `.prettierrc`. Pipeline JSON files, `interface.json`, and `package.json` are all covered. Prettier runs non-destructively — it only changes whitespace and quote style, never semantics.
+
+**markdownlint-cli2** checks Markdown files in `docs/` against a standard rule set. It flags common issues such as missing blank lines around headings, inconsistent list markers, and trailing spaces.
+
+**oxipng** losslessly recompresses PNG images in `assets/resource/base/image/`. It uses optimization level `-o 2`, which balances compression ratio against processing time. The original pixel data is preserved exactly — only the file encoding is optimized.
+
+<Tip>
+  If the oxipng hook modifies images on commit, `git add` the recompressed files and commit again. The second commit will pass cleanly because the images are already optimized.
+</Tip>
+
+## CI/CD and releases
+
+MaaNTE uses GitHub Actions to build and publish releases automatically. The workflow is defined in `.github/` and triggers whenever you push a version tag.
+
+### How the release workflow works
+
+When you push a tag that matches the version pattern (e.g. `v1.0.0`), GitHub Actions:
+
+1. Downloads the MaaFramework binaries into `deps/`.
+2. Packages MFAAvalonia together with the project resources (`assets/`, `agent/`, `requirements.txt`).
+3. Creates a GitHub Release and attaches the packaged archive.
+
+Users download the release archive and run MFAAvalonia directly — they do not need Python, Node.js, or any development tools installed.
+
+### Required repository setting
+
+The release workflow needs write access to create GitHub Releases. Configure this once per repository:
+
+<Steps>
+  <Step title="Open repository settings">
+    Go to your fork on GitHub and click **Settings**.
+  </Step>
+  <Step title="Navigate to Actions permissions">
+    In the left sidebar, click **Actions**, then **General**.
+  </Step>
+  <Step title="Enable read and write permissions">
+    Under **Workflow permissions**, select **Read and write permissions** and click **Save**.
+  </Step>
+</Steps>
+
+<Warning>
+  If this setting is not configured before you push a tag, the release workflow will fail with a permissions error when it tries to create the GitHub Release.
+</Warning>
+
+### Triggering a release
+
+Create and push a version tag from the `main` branch:
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+Replace `v1.0.0` with the version you are releasing. The tag triggers the workflow immediately. Monitor progress in the **Actions** tab on GitHub.
+
+<Note>
+  Tag directly on `main`. The CI workflow targets the tagged commit, not a branch, so the tag must point to a commit that is ready to release.
+</Note>

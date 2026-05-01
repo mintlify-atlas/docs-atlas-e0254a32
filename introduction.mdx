@@ -1,0 +1,53 @@
+---
+title: "MaaNTE: Windows Automation for Neverness to Everness"
+description: "Learn what MaaNTE is, what it automates in Neverness to Everness, and how to get started with fishing, coffee brewing, café revenue, and real-time assist."
+---
+
+MaaNTE is a Windows automation assistant for **Neverness to Everness** (NTE / 异环). It uses [MaaFramework](https://github.com/MaaXYZ/MaaFramework) — an image recognition automation framework — to detect in-game states and perform actions on your behalf, so you can automate repetitive tasks without modifying any game files.
+
+## What MaaNTE automates
+
+MaaNTE covers four main automation areas in Neverness to Everness:
+
+- **Auto Fishing** — casts, monitors the fishing slider, reels in catches, sells the haul, and restocks bait. The fishing algorithm supports up to 120 FPS.
+- **Auto Coffee Brewing** — runs full café brewing loops and dismisses customers automatically. Requires mouse input mode set to "Seize."
+- **Café Revenue Collection** — collects café earnings and restocks inventory without manual interaction.
+- **Real-Time Assist** — handles in-game events such as story prompts and teleport points as they appear.
+
+## How it works
+
+MaaNTE is built on two components:
+
+- **MaaFramework** — the underlying image recognition engine that identifies UI elements, game states, and interactive objects on screen.
+- **MFAAvalonia** — an Avalonia-based GUI wrapper that lets you configure and launch MaaFramework tasks without writing code.
+
+The agent layer is written in Python and runs in a virtual environment that is created automatically on first launch. All required dependencies (`maafw`, `loguru`, `pillow`, `pytz`, `requests`, `opencv-python`) are installed from `requirements.txt` without any manual steps.
+
+## Features
+
+<CardGroup cols={2}>
+  <Card title="Auto fishing" icon="fish" href="/features/auto-fishing">
+    Automated fishing with intelligent slider control and 120 FPS support.
+  </Card>
+  <Card title="Auto coffee brewing" icon="mug-hot" href="/features/auto-coffee">
+    Full brewing loops with automatic customer dismissal.
+  </Card>
+  <Card title="Café revenue collection" icon="sack-dollar" href="/features/cafe-revenue">
+    Automatically collect café earnings and restock supplies.
+  </Card>
+  <Card title="Real-time assist" icon="bolt" href="/features/realtime-assist">
+    Auto story skip, auto teleport, and other real-time event handling.
+  </Card>
+</CardGroup>
+
+## Download safety
+
+<Warning>
+  Only download MaaNTE from the [official GitHub releases page](https://github.com/1bananachicken/MaaNTE/releases). Third-party mirrors and redistributions may contain malware and are never guaranteed to be up to date. Do not install MaaNTE from any other source.
+</Warning>
+
+## Community
+
+<Tip>
+  Join the primary QQ group **1103323319** for help, announcements, and discussion. If the group is full, use the backup group **1101147419**.
+</Tip>

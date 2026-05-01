@@ -1,0 +1,84 @@
+---
+title: "Auto Coffee Brewing — Automate the Café Business Loop"
+description: "MaaNTE automates the NTE café business loop: selecting levels, dismissing customers, reaching the sales goal, and claiming rewards each round."
+---
+
+Auto Coffee Brewing automates the café business mini-game in Neverness to Everness. MaaNTE selects the service level, starts the business, dismisses customers as they arrive, waits until the sales goal is reached (indicated by the star rating), exits business mode, claims the reward, and then loops straight into the next round — all without manual input.
+
+<Warning>
+  Auto Coffee Brewing requires the MaaFramework controller mouse mode to be set to **Seize**. In Seize mode, MaaNTE temporarily takes over your mouse pointer to perform clicks. Avoid using the mouse while this task is running.
+
+  A non-seize input method is under development and will be released in a future beta.
+</Warning>
+
+<Note>
+  Run MaaNTE as **administrator** and keep the game at **1280×720 windowed resolution**. Image detection coordinates are fixed to this layout.
+</Note>
+
+## How it works
+
+<Steps>
+  <Step title="Select service level">
+    MaaNTE clicks the "select level" button (screen region 18, 230, 188×66) to choose the current café tier before starting.
+  </Step>
+  <Step title="Start business">
+    The assistant waits for the `start.png` button to appear in the bottom-right area of the screen, then clicks it to open the café for business.
+  </Step>
+  <Step title="Dismiss customers">
+    MaaNTE repeatedly clicks the customer area to dismiss each customer as they arrive, keeping the queue clear throughout the service period.
+  </Step>
+  <Step title="Wait for sales goal">
+    The assistant polls for the `star.png` rating indicator. When it appears, the sales target has been met and it is safe to close the business for the round.
+  </Step>
+  <Step title="Exit and claim reward">
+    MaaNTE clicks the exit button to leave business mode, then waits for the `claim.png` reward button and clicks it to collect earnings.
+  </Step>
+  <Step title="Continue to next round">
+    After claiming, MaaNTE presses **F** to advance and immediately begins the next brewing cycle, repeating until the configured number of rounds is complete.
+  </Step>
+</Steps>
+
+## Configuration options
+
+The **AutoMakeCoffee** task exposes one option.
+
+<AccordionGroup>
+  <Accordion title="Brewing rounds (循环次数)" defaultOpen={true}>
+    Total number of café business cycles to run before stopping.
+
+    - **Type:** integer
+    - **Default:** `10`
+  </Accordion>
+</AccordionGroup>
+
+## Setting up Seize mouse mode
+
+Seize mode must be configured in the MaaFramework controller settings before running this task. Without it, click coordinates will not register correctly and the automation will stall.
+
+Open the MFAAvalonia settings panel, find the controller **Mouse Input** or **Input Method** setting, and set it to **Seize**. Save and restart the controller connection if prompted.
+
+<Note>
+  A non-seize input method is under active development. Once available, it will be released in a beta build first so that users can test it before it becomes the default.
+</Note>
+
+## Task entry
+
+The coffee brewing automation is launched from the **`AutoMakeCoffee`** task. The loop logic is handled by the `AutoMakeCoffee` custom action (`auto_make_coffee`).
+
+## Requirements summary
+
+| Requirement | Detail |
+|---|---|
+| Resolution | 1280×720 windowed |
+| Permissions | Run as administrator |
+| Mouse mode | MaaFramework controller set to **Seize** |
+| File paths | Must not contain Chinese characters |
+
+<CardGroup cols={2}>
+  <Card title="Café Revenue" icon="sack-dollar" href="/features/cafe-revenue">
+    Collect accumulated café earnings between brewing sessions.
+  </Card>
+  <Card title="Auto Fishing" icon="fish" href="/features/auto-fishing">
+    Run the fishing loop in parallel with other automation tasks.
+  </Card>
+</CardGroup>

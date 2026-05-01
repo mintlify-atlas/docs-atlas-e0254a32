@@ -1,0 +1,88 @@
+---
+title: "MaaNTE Architecture and Contribution Overview"
+description: "Understand how MaaNTE is structured, how its two main components work together, and how to contribute changes through GitHub pull requests."
+---
+
+MaaNTE is built on two main layers that work together: declarative pipeline JSON files that describe task graphs, and Python custom actions that handle logic too complex for a pipeline alone. MaaFramework drives both — it reads the pipeline definitions, performs image recognition against the game window, and calls into Python when a task node requires it. MFAAvalonia provides the GUI on top without requiring any additional code.
+
+## Architecture
+
+### Pipeline JSON tasks
+
+Pipelines live in `assets/resource/base/pipeline/` as JSON files. Each file defines a set of task nodes. A node describes a recognition condition (for example, matching a template image within a region of the screen) and an action to perform when that condition is met — clicking, swiping, waiting, or calling a custom Python action. MaaFramework traverses these task graphs at runtime, advancing through nodes as conditions are satisfied.
+
+This approach keeps most automation declarative. Adding a new step to an existing workflow often means adding or editing a JSON node rather than writing code.
+
+### Python custom actions
+
+When a task requires logic that pipelines cannot express — iterative algorithms, OpenCV-based matching, stateful control loops — a Python custom action handles it. Custom actions live in `agent/custom/action/` and are registered with MaaFramework's agent server using the `@AgentServer.custom_action` decorator. The pipeline references the registered name as a string; MaaFramework invokes the Python class at runtime.
+
+The agent process (`agent/main.py`) manages the virtual environment, installs dependencies from `requirements.txt`, and starts the agent server that MFAAvalonia connects to.
+
+### MFAAvalonia GUI
+
+MFAAvalonia reads `assets/interface.json` to generate the task selection UI and option controls. No GUI code is required — adding a new task to `interface.json` automatically surfaces it in the interface.
+
+## Repository structure
+
+```
+MaaNTE/
+├── agent/
+│   ├── main.py                  # Entry point; venv setup, dependency install
+│   ├── custom/
+│   │   └── action/
+│   │       ├── auto_fish.py
+│   │       ├── auto_make_coffee.py
+│   │       ├── auto_sell_fish.py
+│   │       ├── auto_buy_fish_bait.py
+│   │       └── utils.py
+│   └── utils/
+│       ├── logger.py
+│       ├── pienv.py
+│       ├── time.py
+│       └── win32_process.py
+├── assets/
+│   ├── interface.json           # MFAAvalonia task/option configuration
+│   ├── MaaCommonAssets/         # Git submodule
+│   └── resource/
+│       └── base/
+│           ├── image/           # Template images for recognition
+│           ├── model/           # OCR models (downloaded separately, not in repo)
+│           └── pipeline/        # Task pipeline JSON files
+│               ├── auto_make_coffee.json
+│               ├── auto_withdraw_money.json
+│               ├── realtime_assist.json
+│               └── Fish/
+├── deps/                        # MaaFramework binaries (downloaded separately)
+├── docs/
+│   └── zh_cn/develop/
+└── requirements.txt             # maafw, loguru, pillow, pytz, requests, opencv-python
+```
+
+## How contributions work
+
+MaaNTE follows a standard fork-and-PR workflow:
+
+1. Fork the repository on GitHub.
+2. Clone with submodules and set up your local environment.
+3. Make changes on a feature branch.
+4. Open a pull request targeting the `dev` branch — not `main`.
+
+The `dev` branch is the integration target for new work. The `main` branch tracks stable releases.
+
+## Continue reading
+
+<CardGroup cols={2}>
+  <Card title="Development setup" icon="screwdriver-wrench" href="/develop/setup">
+    Fork the repo, install MaaFramework binaries, download OCR models, and configure VS Code.
+  </Card>
+  <Card title="Pipeline JSON" icon="diagram-project" href="/develop/pipeline">
+    Learn how pipeline files define task graphs and how to add or modify tasks.
+  </Card>
+  <Card title="Custom actions" icon="python" href="/develop/custom-actions">
+    Write Python custom actions for complex logic and register them with MaaFramework.
+  </Card>
+  <Card title="interface.json reference" icon="file-code" href="/develop/interface-json">
+    Full schema reference for the MFAAvalonia configuration file.
+  </Card>
+</CardGroup>

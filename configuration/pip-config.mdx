@@ -1,0 +1,109 @@
+---
+title: 'Pip Configuration File Reference for MaaNTE'
+description: 'Configure Python dependency installation in MaaNTE via config/pip_config.json, including mirror selection and disabling auto-updates on startup.'
+---
+
+MaaNTE automatically installs and updates its Python dependencies on startup using pip. The `config/pip_config.json` file controls that behaviour — which mirror to use, whether to fall back to a secondary source, and whether to run pip at all. This file is created automatically with default values the first time MaaNTE runs, so you only need to edit it when you want to change the default behaviour.
+
+<Note>The default mirrors (`pypi.tuna.tsinghua.edu.cn` and `mirrors.ustc.edu.cn`) are optimised for users in China. If you are outside China and have reliable access to the official PyPI index, you may want to clear these values or disable pip install entirely if your environment already has the required packages.</Note>
+
+## File location
+
+```
+<MaaNTE installation directory>/
+└── config/
+    └── pip_config.json
+```
+
+The file is auto-created on first run. If it does not exist, MaaNTE creates it with the defaults shown below before proceeding with dependency installation.
+
+## Default configuration
+
+```json
+{
+    "enable_pip_install": true,
+    "mirror": "https://pypi.tuna.tsinghua.edu.cn/simple",
+    "backup_mirror": "https://mirrors.ustc.edu.cn/pypi/simple"
+}
+```
+
+## Fields
+
+<AccordionGroup>
+  <Accordion title="enable_pip_install">
+    | Property | Value |
+    |----------|-------|
+    | Type | boolean |
+    | Default | `true` |
+
+    Controls whether MaaNTE runs pip to install or update dependencies each time it starts. When set to `false`, the startup pip step is skipped entirely.
+
+    **When to change this:**
+    - Set to `false` if you manage Python packages yourself and don't want MaaNTE to modify your environment on each run.
+    - Set to `false` in air-gapped or locked-down environments where pip is not available or not permitted.
+    - Keep as `true` (default) to ensure dependencies stay up to date automatically.
+
+    ```json
+    {
+        "enable_pip_install": false,
+        "mirror": "https://pypi.tuna.tsinghua.edu.cn/simple",
+        "backup_mirror": "https://mirrors.ustc.edu.cn/pypi/simple"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="mirror">
+    | Property | Value |
+    |----------|-------|
+    | Type | string |
+    | Default | `"https://pypi.tuna.tsinghua.edu.cn/simple"` |
+
+    The primary PyPI mirror URL passed to pip as `--index-url`. MaaNTE tries this source first when downloading packages.
+
+    **When to change this:**
+    - Replace with a different mirror if the Tsinghua mirror is slow or unavailable in your region.
+    - Set to an empty string (`""`) to use pip's system-level index configuration instead of a hardcoded URL.
+
+    ```json
+    {
+        "enable_pip_install": true,
+        "mirror": "https://pypi.org/simple",
+        "backup_mirror": "https://mirrors.ustc.edu.cn/pypi/simple"
+    }
+    ```
+
+    <Tip>If you are outside China, the official PyPI index (`https://pypi.org/simple`) is a reliable choice for the primary mirror.</Tip>
+  </Accordion>
+
+  <Accordion title="backup_mirror">
+    | Property | Value |
+    |----------|-------|
+    | Type | string |
+    | Default | `"https://mirrors.ustc.edu.cn/pypi/simple"` |
+
+    A fallback PyPI mirror URL passed to pip as `--extra-index-url`. If a package cannot be found or downloaded from the primary mirror, pip will also consult this URL.
+
+    **When to change this:**
+    - Replace with another mirror if the USTC mirror is unreliable in your network.
+    - Set to an empty string (`""`) to disable the fallback and rely solely on the primary mirror.
+
+    ```json
+    {
+        "enable_pip_install": true,
+        "mirror": "https://pypi.tuna.tsinghua.edu.cn/simple",
+        "backup_mirror": ""
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Installation logic
+
+MaaNTE's startup dependency installer follows this order:
+
+1. **Offline mode** — if `.whl` files are present in the local `deps/` directory, MaaNTE installs from those first, then falls back to online sources for any remaining packages.
+2. **Online with mirrors** — if `mirror` is set, it is used as the primary index. If `backup_mirror` is also set, it is added as an extra index URL.
+3. **System pip config** — if neither mirror field is set, pip uses whatever index is configured in your system or virtual environment pip configuration.
+4. **Disabled** — if `enable_pip_install` is `false`, none of the above steps run.
+
+<Warning>If you place `.whl` files in `deps/` for offline installation, make sure they match your Python version and platform. Mismatched wheels will cause installation errors at startup.</Warning>

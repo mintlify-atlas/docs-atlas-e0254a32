@@ -1,22 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "MaaNTE",
+  "projectType": "saas",
+  "projectName": "MaaNTE",
+  "projectDescription": "An automation assistant for the game Neverness to Everness (NTE/异环), powered by MaaFramework, that automates tasks like fishing, coffee brewing, and café revenue collection.",
   "theme": "almond",
-  "colors": {
-    "primary": "#04a4d7"
-  },
-  "favicon": "https://media.brand.dev/f8320be4-f9e4-415f-825f-7f73e14be276.png",
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/1bananachicken/MaaNTE"
-    }
-  },
-  "footer": {
-    "socials": {
-      "github": "https://github.com/1bananachicken/MaaNTE"
-    }
-  },
+  "primaryColor": "#04a4d7",
+  "lightColor": null,
+  "darkColor": null,
   "navigation": {
     "tabs": [
       {
@@ -78,5 +67,26 @@
         ]
       }
     ]
-  }
+  },
+  "keyFeatures": [
+    "Auto Fishing with intelligent slider control and 120 FPS support",
+    "Auto Fish selling and bait purchasing",
+    "Auto Coffee Brewing with customer management",
+    "Auto Café revenue extraction and restocking",
+    "Real-time assistance with auto story skip and auto teleport",
+    "Configurable task options via MFAAvalonia GUI",
+    "Virtual environment management and automatic dependency installation",
+    "Windows Win32 controller integration via MaaFramework"
+  ],
+  "publicApiSurface": [
+    "AutoFish (custom_action: auto_fish)",
+    "AutoMakeCoffee (custom_action: auto_make_coffee)",
+    "AutoSellFish (custom_action: auto_sell_fish)",
+    "AutoBuyFishBait (custom_action: auto_buy_fish_bait)",
+    "Task: FishEntrance",
+    "Task: 领取一咖舍收益",
+    "Task: AutoMakeCoffee",
+    "Task: RealTimeTaskMain",
+    "interface.json options: 钓鱼循环次数, 钓鱼数量, 自动卖鱼, 自动买鱼饵, 鱼饵识别阈值, 循环次数, RealTimeCheckInterval, RealTimeAutoSkip, RealTimeAutoTeleport"
+  ]
 }

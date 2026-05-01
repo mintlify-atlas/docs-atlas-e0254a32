@@ -1,0 +1,131 @@
+---
+title: "Diagnose and Fix MaaNTE Errors and Warnings"
+description: "Diagnose and resolve specific MaaNTE error messages and warning logs, including VC runtime issues, admin warnings, path errors, and resolution mismatches."
+---
+
+This page documents error messages and warning conditions you may encounter while running MaaNTE, along with their causes and step-by-step solutions. If a warning appears in the application log or the console window, find it below for a resolution.
+
+<AccordionGroup>
+  <Accordion title="Application cannot start normally / VC runtime error on launch">
+    **Cause:** The Visual C++ Redistributable runtime is missing from your system. This library is required by MaaFramework and is not bundled with Windows by default.
+
+    **Solution:** Download and install the Microsoft Visual C++ Redistributable:
+
+    <Steps>
+      <Step title="Download the installer">
+        Download `vc_redist.x64.exe` from Microsoft: [https://aka.ms/vs/17/release/vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+      </Step>
+      <Step title="Run the installer">
+        Double-click the downloaded file and follow the installation prompts.
+      </Step>
+      <Step title="Restart and retry">
+        After installation completes, restart your computer and launch MaaNTE again.
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Warning: 未以管理员权限运行 (not running as administrator)">
+    **Cause:** MaaNTE is not running with administrator privileges. Input simulation functions that depend on Win32 API calls require elevated access and will not work correctly without them.
+
+    **Solution:**
+
+    <Steps>
+      <Step title="Close MaaNTE">
+        Exit any running instance of MaaNTE.
+      </Step>
+      <Step title="Run as administrator">
+        Right-click `MaaNTE.exe` and select **Run as administrator** from the context menu.
+      </Step>
+    </Steps>
+
+    <Tip>
+      To avoid this warning every time, right-click `MaaNTE.exe`, go to **Properties → Compatibility**, and check **Run this program as an administrator**.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Warning: 当前运行目录含中文或全角字符 (Chinese or full-width characters in path)">
+    **Cause:** The directory path where MaaNTE is installed contains Chinese characters or full-width characters (for example, `C:\用户\下载\MaaNTE`). The path check in `agent/main.py` detects these characters and warns that they will cause the tool to malfunction.
+
+    **Solution:**
+
+    <Steps>
+      <Step title="Close MaaNTE">
+        Exit any running instance of MaaNTE.
+      </Step>
+      <Step title="Move MaaNTE to an ASCII-only path">
+        Move the entire MaaNTE folder to a path that contains only standard ASCII characters, such as `C:\MaaNTE` or `D:\Tools\MaaNTE`.
+      </Step>
+      <Step title="Relaunch">
+        Run `MaaNTE.exe` from the new location.
+      </Step>
+    </Steps>
+
+    <Warning>
+      Do not place MaaNTE inside a user profile folder (such as `C:\Users\张三\`) if the username contains non-ASCII characters.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Warning: game resolution is not 1280×720">
+    **Cause:** The game window (`HTGame.exe`) is not running at the expected 1280×720 resolution. MaaNTE's image recognition templates are calibrated for this exact size, so other resolutions will cause detection failures.
+
+    **Solution:**
+
+    <Steps>
+      <Step title="Open in-game settings">
+        Launch Neverness to Everness and open the graphics or display settings.
+      </Step>
+      <Step title="Set windowed mode at 1280×720">
+        Set the display mode to **Windowed** and the resolution to **1280×720**.
+      </Step>
+      <Step title="Apply and restart MaaNTE">
+        Apply the settings, then restart MaaNTE so it re-reads the window dimensions.
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Fishing not detecting fish / automation does nothing">
+    If no specific error appears in the log but fishing automation is not working, go through this checklist:
+
+    - MaaNTE is running as **administrator**
+    - Game resolution is set to **1280×720 windowed**
+    - **Auto Fishing** is enabled in the MaaNTE GUI
+    - The MaaNTE folder path contains **only ASCII characters**
+    - Antivirus software is **not blocking** MaaNTE (try temporarily disabling it)
+
+    If all items above are confirmed and the issue persists, check `debug/maa.log` for detailed output and consider opening an issue on [GitHub](https://github.com/1bananachicken/MaaNTE/issues).
+  </Accordion>
+
+  <Accordion title="Bait not detected / auto buy bait fails">
+    **Cause:** The bait recognition confidence threshold may be set too high, causing MaaNTE to miss the bait UI element under certain visual conditions.
+
+    **Solution:** Lower the bait recognition threshold in the task options. Try setting it to `0.7` first; if detection is still inconsistent, try `0.6`. The threshold can be adjusted in the task configuration within the MaaNTE GUI.
+  </Accordion>
+
+  <Accordion title="Pip install fails on startup / dependencies not installed">
+    **Cause:** MaaNTE automatically installs Python dependencies on the first run. If this step fails, it is typically caused by a misconfigured or unreachable pip mirror.
+
+    **Solution:**
+
+    <Steps>
+      <Step title="Open the pip configuration file">
+        Open `config/pip_config.json` in a text editor.
+      </Step>
+      <Step title="Change or disable the mirror">
+        Try switching to a different mirror URL, or remove the mirror configuration to use the default PyPI index.
+      </Step>
+      <Step title="Retry the launch">
+        Save the file and restart MaaNTE. The dependency installation will run again automatically.
+      </Step>
+    </Steps>
+
+    <Note>
+      If you are behind a corporate proxy or firewall, ensure that outbound connections to PyPI (or your configured mirror) are permitted.
+    </Note>
+  </Accordion>
+
+  <Accordion title="'Mirror not supported' notification in the bottom right corner">
+    **Cause:** The auto-update component (Mirror酱) is not configured. This is a notification from the updater, not from MaaNTE's core automation engine.
+
+    **Resolution:** This notification is safe to ignore. It does not affect any automation functionality. No action is required.
+  </Accordion>
+</AccordionGroup>

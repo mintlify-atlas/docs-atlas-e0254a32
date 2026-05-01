@@ -1,0 +1,85 @@
+---
+title: "Real-Time Assist: Auto Story Skip and Auto Teleport"
+description: "MaaNTE's real-time assistant polls for in-game events at a configurable interval — automatically skipping story cutscenes and teleporting at key landmarks."
+---
+
+Real-Time Assistance runs as a background task alongside your other automation. It polls the game screen at a configurable interval and reacts to events as they occur — automatically skipping story cutscenes so they don't interrupt other tasks, and optionally triggering teleport actions at specific landmarks. Each behaviour can be enabled or disabled independently.
+
+<Note>
+  Real-Time Assistance is designed to run concurrently with other MaaNTE tasks. Keep the game at **1280×720 windowed resolution** and run MaaNTE as **administrator** for all input injection to function correctly.
+</Note>
+
+## How it works
+
+The **`RealTimeTaskMain`** task starts a polling loop. On each tick it checks which pipeline tasks are enabled and, if the matching screen state is detected, triggers the corresponding action. The interval between checks is controlled by `RealTimeCheckInterval`.
+
+## Configuration options
+
+<AccordionGroup>
+  <Accordion title="Check interval (RealTimeCheckInterval)" defaultOpen={true}>
+    How frequently, in milliseconds, the assistant scans the screen for events.
+
+    - **Type:** integer (milliseconds)
+    - **Default:** `500`
+
+    <Tip>Lower values make the assistant more responsive but increase CPU and GPU load from image-recognition processing. The default 500 ms is appropriate for most use cases.</Tip>
+  </Accordion>
+
+  <Accordion title="Auto skip story (RealTimeAutoSkip)">
+    Enables or disables automatic story skipping. When enabled, MaaNTE detects story cutscene prompts and dismisses them without manual input.
+
+    - **Type:** switch (Yes / No)
+    - **Default:** Yes (enabled)
+    - **Controls pipeline task:** `RealTimeSkipPlot`
+
+    **Sub-option — skip all story (RealTimeAutoSkipAll):**
+
+    When `RealTimeAutoSkip` is on, this sub-option controls the scope of skipping:
+
+    - **Enabled:** MaaNTE auto-skips **all** story dialogue and cutscenes as they appear.
+    - **Disabled:** MaaNTE only detects story events but does not skip — useful if you want alerts without automatic dismissal.
+  </Accordion>
+
+  <Accordion title="Auto teleport (RealTimeAutoTeleport)">
+    Enables or disables automatic teleportation at supported landmark locations. When the game presents a teleport prompt at a configured location, MaaNTE confirms it automatically.
+
+    - **Type:** switch (Yes / No)
+    - **Default:** No (disabled)
+
+    **Sub-options:**
+
+    Two locations are supported independently:
+
+    | Sub-option | Location | Controls pipeline task | Default |
+    |---|---|---|---|
+    | `RealTimeAutoTeleportWitte` | Witte Heimertower (维特海默塔) | `RealTimeTeleportWitte` | Yes |
+    | `RealTimeAutoTeleportPhone` | ReroRero Phone Booth (ReroRero电话亭) | `RealTimeTeleportPhone` | Yes |
+
+    Both sub-options default to **Yes** so that enabling the parent switch immediately activates teleportation at both landmarks. Disable either sub-option individually to limit teleportation to a single location.
+
+    <Warning>
+      Auto teleport is disabled by default because unintended teleportation can interrupt quests or manually planned routes. Enable it only when you are certain that automatic teleportation at these landmarks will not disrupt your session.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Task entry
+
+Launch the background assistant using the **`RealTimeTaskMain`** task in the MaaNTE interface.
+
+## Requirements summary
+
+| Requirement | Detail |
+|---|---|
+| Resolution | 1280×720 windowed |
+| Permissions | Run as administrator |
+| File paths | Must not contain Chinese characters |
+
+<CardGroup cols={2}>
+  <Card title="Auto Fishing" icon="fish" href="/features/auto-fishing">
+    Pair with real-time assist to skip story interruptions during fishing.
+  </Card>
+  <Card title="Auto Coffee Brewing" icon="mug-hot" href="/features/auto-coffee">
+    Run the café loop with real-time assist handling background events.
+  </Card>
+</CardGroup>

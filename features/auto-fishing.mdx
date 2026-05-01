@@ -1,0 +1,95 @@
+---
+title: "Auto Fishing — Automated Casting and Reeling in NTE"
+description: "MaaNTE's auto fishing feature handles casting, hooking detection, and slider-based reeling at up to 120 FPS — with optional auto-sell and bait restocking."
+---
+
+Auto Fishing automates the full fishing loop in Neverness to Everness: it casts your line, waits for a bite, engages the reeling minigame by keeping the slider inside the valid region, collects the catch, and repeats for as many cycles as you configure. Optional sub-tasks handle selling your fish and restocking bait automatically.
+
+<Warning>
+  MaaNTE requires the game to run at **1280×720 windowed resolution**. Auto Fishing will not work at other resolutions because image detection regions are fixed to that layout.
+</Warning>
+
+<Note>
+  Run MaaNTE as **administrator**. Without elevated permissions, keyboard input injection (F, A, D keys) may be silently blocked by Windows.
+</Note>
+
+## How it works
+
+<Steps>
+  <Step title="Cast the line">
+    MaaNTE presses the **F key** to cast. If no fish is hooked within 30 seconds, it casts again and restarts the wait.
+  </Step>
+  <Step title="Detect a bite">
+    The assistant continuously watches a 785×190 region of the screen for the `success_catch` indicator. When detected, it immediately presses **F** to start the reeling minigame.
+  </Step>
+  <Step title="Reel in the fish">
+    During the minigame, MaaNTE detects the slider position and the left/right boundaries of the valid region using template matching. It presses **A** (move left) or **D** (move right) to keep the slider centred inside the valid zone. A 15-pixel deadzone prevents jitter at the edges. The polling loop supports up to **120 FPS** (`check_freq = 0.001 s`).
+  </Step>
+  <Step title="Collect or handle escape">
+    After reeling, MaaNTE checks for two outcomes:
+    - **Catch success** — a settlement screen appears; the assistant presses **ESC** to close it.
+    - **Fish escaped** — detected via a separate template; the cycle restarts.
+  </Step>
+  <Step title="Repeat or stop">
+    The cycle repeats until the configured fish count per cycle (`count`) is reached. After all cycles (`max_hit`) complete, or if bait runs out and auto-buy is disabled, the task stops automatically.
+  </Step>
+</Steps>
+
+## Configuration options
+
+The **FishEntrance** task exposes the following options in the MaaNTE interface.
+
+<AccordionGroup>
+  <Accordion title="Fishing cycles (钓鱼循环次数 / max_hit)" defaultOpen={true}>
+    How many complete fishing cycles to run before stopping. One cycle consists of casting and catching up to `count` fish.
+
+    - **Type:** integer
+    - **Default:** `5`
+  </Accordion>
+  <Accordion title="Fish per cycle (钓鱼数量 / count)">
+    How many fish to catch in each cycle before moving on to the next.
+
+    - **Type:** integer
+    - **Default:** `99`
+  </Accordion>
+  <Accordion title="Auto sell fish (自动卖鱼)">
+    Enable the **AutoSellFish** sub-task to automatically sell your catch after each cycle.
+
+    - **Type:** switch (Yes / No)
+  </Accordion>
+  <Accordion title="Auto buy bait (自动买鱼饵)">
+    Enable the **AutoBuyFishBait** sub-task to automatically restock bait when it runs out. If disabled and bait is depleted, the task stops.
+
+    - **Type:** switch (Yes / No)
+  </Accordion>
+  <Accordion title="Bait detection threshold (鱼饵识别阈值 / found_bait_threshold)">
+    Confidence threshold used when detecting whether bait is present. Lower values are more lenient; higher values reduce false positives.
+
+    - **Type:** select
+    - **Options:** `0.8` (default) / `0.7` / `0.6`
+
+    <Tip>If MaaNTE incorrectly reports that bait is missing when it is present, try lowering the threshold to `0.7` or `0.6`.</Tip>
+  </Accordion>
+</AccordionGroup>
+
+## Task entry
+
+The fishing automation is launched from the **`FishEntrance`** task. The reeling logic lives in the **`FishGameStart`** custom action (`auto_fish`), which receives `count` as its `custom_action_param`.
+
+## Requirements summary
+
+| Requirement | Detail |
+|---|---|
+| Resolution | 1280×720 windowed |
+| Permissions | Run as administrator |
+| File paths | Must not contain Chinese characters |
+| Bait | Required unless auto-buy is enabled |
+
+<CardGroup cols={2}>
+  <Card title="Café Revenue" icon="sack-dollar" href="/features/cafe-revenue">
+    Automatically collect café earnings after your fishing session.
+  </Card>
+  <Card title="Real-Time Assist" icon="bolt" href="/features/realtime-assist">
+    Auto-skip story and auto-teleport while fishing runs in the background.
+  </Card>
+</CardGroup>

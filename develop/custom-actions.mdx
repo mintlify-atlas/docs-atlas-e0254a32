@@ -1,0 +1,210 @@
+---
+title: "Writing Python Custom Actions for MaaNTE"
+description: "Learn how to create, register, and test MaaNTE Python custom actions using MaaFramework's AgentServer, controller API, and OpenCV template matching utilities."
+---
+
+Custom actions are Python classes that MaaFramework calls when a pipeline task node sets `"action": "Custom"`. They handle logic that pipeline JSON cannot express on its own — iterative algorithms, multi-step control loops, OpenCV-based image analysis, or anything that requires conditional branching across many frames. The fishing and coffee brewing features in MaaNTE are both implemented as custom actions.
+
+## When to use a custom action
+
+Use a custom action when:
+
+- The task requires an algorithm that loops until a condition changes (for example, monitoring a fishing slider).
+- You need to read image data and make decisions based on pixel content at runtime.
+- Multiple game inputs must be coordinated in a sequence that depends on intermediate screen state.
+
+If a task can be expressed as a linear sequence of image matches and clicks, a pipeline-only approach is simpler and preferred.
+
+## File structure
+
+All custom action modules live in:
+
+```
+agent/custom/action/
+├── __init__.py           # Exports all action classes
+├── auto_fish.py
+├── auto_make_coffee.py
+├── auto_sell_fish.py
+├── auto_buy_fish_bait.py
+└── utils.py              # Shared utilities (template matching, etc.)
+```
+
+## Registering a custom action
+
+Every custom action follows the same pattern: decorate the class with `@AgentServer.custom_action`, inherit from `CustomAction`, and implement the `run()` method.
+
+```python agent/custom/action/auto_fish.py {1-2,5}
+from maa.agent.agent_server import AgentServer
+from maa.custom_action import CustomAction
+from maa.context import Context
+import json
+
+@AgentServer.custom_action("auto_fish")
+class AutoFish(CustomAction):
+    def run(self, context: Context, argv: CustomAction.RunArg) -> CustomAction.RunResult:
+        ...
+```
+
+The string passed to `@AgentServer.custom_action` — here `"auto_fish"` — is the name you reference in the pipeline JSON's `custom_action` field. These must match exactly.
+
+## The run() method
+
+The `run()` method receives two arguments:
+
+- **`context`** — provides access to the MaaFramework tasker and controller.
+- **`argv`** — contains the `custom_action_param` string from the pipeline node.
+
+It must return a `CustomAction.RunResult` with `success=True` or `success=False`.
+
+### Reading custom parameters
+
+Parameters are passed from the pipeline node as a JSON-encoded string. Decode them with `json.loads`:
+
+```python agent/custom/action/auto_fish.py
+def run(self, context: Context, argv: CustomAction.RunArg) -> CustomAction.RunResult:
+    params = json.loads(argv.custom_action_param)
+    max_duration = params.get("max_duration", 120)
+```
+
+In the pipeline JSON, the corresponding node sets:
+
+```json pipeline/Fish/auto_fish.json
+{
+  "custom_action_param": "{\"max_duration\": 300}"
+}
+```
+
+### Checking for stop signal
+
+Always check `context.tasker.stopping` inside long-running loops. When the user clicks Stop in the GUI, this flag becomes `True`. Returning `success=False` at that point exits cleanly.
+
+```python agent/custom/action/auto_fish.py
+while True:
+    if context.tasker.stopping:
+        return CustomAction.RunResult(success=False)
+    # ... continue logic
+```
+
+### Controller API
+
+Access the game controller through `context.tasker.controller`. The controller methods are non-blocking and return handles you call `.wait()` on when you need the result before continuing.
+
+| Method | Description |
+|--------|-------------|
+| `controller.post_screencap().wait()` | Capture the current screen. Read the result with `controller.cached_image`. |
+| `controller.post_click(x, y)` | Send a mouse click at the given screen coordinates. |
+| `controller.post_key_down(key_code)` | Press and hold a key (decimal key code, e.g. `70` for F). |
+| `controller.post_key_up(key_code)` | Release a held key. |
+| `controller.post_click_key(key_code).wait()` | Send a key press + release in one call. Used in sell and buy actions. |
+| `controller.post_touch_down(x, y).wait()` | Begin a touch event at the given coordinates. |
+| `controller.post_touch_up().wait()` | End a touch event. |
+
+Example — capturing the screen and reading the image:
+
+```python agent/custom/action/auto_fish.py
+controller = context.tasker.controller
+controller.post_screencap().wait()
+img = controller.cached_image  # numpy array (BGRA)
+```
+
+## Template matching utility
+
+The `utils.py` module provides a shared helper for matching a template image within a specific screen region. This avoids running a full-image search when only a small area is relevant.
+
+```python agent/custom/action/utils.py
+import cv2
+import numpy as np
+
+def match_template_in_region(img, region, template, min_similarity=0.8):
+    # region is [x, y, w, h]
+    x1, y1, w, h = region
+    x2, y2 = x1 + w, y1 + h
+    roi = img[y1:y2, x1:x2]
+    if len(roi.shape) == 3 and roi.shape[2] == 4:
+        roi = cv2.cvtColor(roi, cv2.COLOR_BGRA2BGR)
+    res = cv2.matchTemplate(roi, template, cv2.TM_CCOEFF_NORMED)
+    _, max_val, _, max_loc = cv2.minMaxLoc(res)
+    if max_val >= min_similarity:
+        return True, max_val, x1 + max_loc[0], y1 + max_loc[1]
+    return False, max_val, 0, 0
+```
+
+To load a template image relative to the action file's location:
+
+```python agent/custom/action/auto_fish.py
+from pathlib import Path
+import cv2
+
+_DIR = Path(__file__).parent
+template = cv2.imread(str(_DIR / "../../../assets/resource/base/image/Fish/bite_indicator.png"))
+```
+
+## Complete example
+
+The `AutoFish` and `AutoMakeCoffee` classes show the full pattern in practice. Below is a condensed version of `auto_fish.py` illustrating all the concepts above:
+
+```python agent/custom/action/auto_fish.py
+import json
+from maa.agent.agent_server import AgentServer
+from maa.custom_action import CustomAction
+from maa.context import Context
+
+KEY_F = 70  # Virtual key code for F (decimal)
+
+@AgentServer.custom_action("auto_fish")
+class AutoFish(CustomAction):
+    def run(self, context: Context, argv: CustomAction.RunArg) -> CustomAction.RunResult:
+        params = json.loads(argv.custom_action_param)
+        controller = context.tasker.controller
+
+        # Start fishing by pressing F
+        controller.post_key_down(KEY_F)
+        controller.post_key_up(KEY_F)
+
+        while True:
+            if context.tasker.stopping:
+                return CustomAction.RunResult(success=False)
+
+            # Capture screen for analysis
+            controller.post_screencap().wait()
+            img = controller.cached_image
+
+            # ... fishing algorithm using img and controller inputs ...
+
+        return CustomAction.RunResult(success=True)
+```
+
+## Exporting the action
+
+After creating a new action class, add it to `agent/custom/action/__init__.py` so it is imported when the agent starts:
+
+```python agent/custom/action/__init__.py
+from .auto_fish import AutoFish
+from .auto_make_coffee import AutoMakeCoffee
+from .auto_sell_fish import AutoSellFish
+from .auto_buy_fish_bait import AutoBuyFishBait
+from .your_new_action import YourNewAction  # add this line
+```
+
+The `agent/main.py` entry point imports the `custom` package, which triggers these imports and registers all decorated classes with the agent server before it starts listening.
+
+## Referencing the action in a pipeline
+
+Once registered, reference the action in a pipeline node using the exact string passed to `@AgentServer.custom_action`:
+
+```json pipeline/your_feature.json
+{
+  "YourFeatureTask": {
+    "recognition": "TemplateMatch",
+    "template": "your_feature/trigger.png",
+    "roi": [0, 0, 1280, 720],
+    "action": "Custom",
+    "custom_action": "your_action_name",
+    "custom_action_param": "{\"option\": true}"
+  }
+}
+```
+
+<Warning>
+  If the `custom_action` string does not match a registered action name exactly, MaaFramework will fail to invoke the action at runtime. Double-check spelling and confirm the class is exported from `agent/custom/action/__init__.py`.
+</Warning>

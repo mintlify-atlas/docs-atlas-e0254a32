@@ -1,0 +1,45 @@
+---
+title: "Café Revenue Collection in Neverness to Everness"
+description: "MaaNTE automatically navigates to the 一咖舍 café management screen, collects accumulated revenue, and optionally restocks supplies — no configuration needed."
+---
+
+Café Revenue Collection is a standalone task that automatically retrieves accumulated earnings from the 一咖舍 (Yī Kā Shè) café in Neverness to Everness. MaaNTE navigates to the café management screen, collects any pending revenue, and handles restocking if supplies are low — all in a single run with no options to configure.
+
+<Note>
+  Run MaaNTE as **administrator** and keep the game at **1280×720 windowed resolution**. The navigation pipeline uses fixed screen coordinates matched to this layout.
+</Note>
+
+## How it works
+
+<Steps>
+  <Step title="Navigate to café management">
+    MaaNTE opens the in-game café management interface for 一咖舍 using the pipeline defined in `auto_withdraw_money.json`.
+  </Step>
+  <Step title="Collect accumulated revenue">
+    The assistant detects and clicks the revenue collection prompt to withdraw all earnings that have built up since the last collection.
+  </Step>
+  <Step title="Restock supplies (if needed)">
+    If the restocking (补货) prompt is available, MaaNTE triggers auto-restock to replenish café supplies before exiting the management screen.
+  </Step>
+</Steps>
+
+## Task entry
+
+Launch this feature using the **`领取一咖舍收益`** (Collect Café Revenue) task in the MaaNTE interface. There are no configurable parameters — the task runs to completion and exits.
+
+## Requirements summary
+
+| Requirement | Detail |
+|---|---|
+| Resolution | 1280×720 windowed |
+| Permissions | Run as administrator |
+| File paths | Must not contain Chinese characters |
+
+<CardGroup cols={2}>
+  <Card title="Auto Coffee Brewing" icon="mug-hot" href="/features/auto-coffee">
+    Automate the café business loop to generate revenue before collecting it.
+  </Card>
+  <Card title="Auto Fishing" icon="fish" href="/features/auto-fishing">
+    Run the full fishing loop including optional auto-sell.
+  </Card>
+</CardGroup>
